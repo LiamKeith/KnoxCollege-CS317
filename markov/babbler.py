@@ -111,9 +111,29 @@ class Babbler:
         and that any n-grams that stops a sentence should be followed by the
         special symbol 'EOL' in the state transition table. 'EOL' is short for 'end of line'; since it is capitalized and all our input texts are lower-case, it will be unambiguous.
         """
+        words = sentence.lower().split()
+        n = self.n
+        if len(words) < n:
+            return  # Not enough words for an n-gram
 
-        pass #The pass statement is used as a placeholder for future code. When the pass statement is executed, nothing happens, but you avoid getting an error when empty code is not allowed. Empty code is not allowed in loops, function definitions, class definitions, or in if statements.
+        # Track the starter n-gram
+        starter_ngram = ' '.join(words[:n])
+        self.starters.append(starter_ngram)
 
+        # Build the n-gram graph
+        for i in range(len(words) - n):
+            ngram = ' '.join(words[i:i+n])
+            next_word = words[i+n]
+            if ngram not in self.brainGraph:
+                self.brainGraph[ngram] = []
+            self.brainGraph[ngram].append(next_word)
+
+        # Handle the stopper n-gram (last n words)
+        stopper_ngram = ' '.join(words[-n:])
+        self.stoppers.append(stopper_ngram)
+        if stopper_ngram not in self.brainGraph:
+            self.brainGraph[stopper_ngram] = []
+        self.brainGraph[stopper_ngram].append('EOL')
 
     def get_starters(self):
         """
@@ -121,8 +141,7 @@ class Babbler:
         The resulting list may contain duplicates, because one n-gram may start
         multiple sentences. Probably a one-line method.
         """
-        pass
-    
+        return self.starters
 
     def get_stoppers(self):
         """
@@ -130,24 +149,17 @@ class Babbler:
         The resulting value may contain duplicates, because one n-gram may stop
         multiple sentences. Probably a one-line method.
         """
-        pass
-
+        return self.stoppers
 
     def get_successors(self, ngram):
         """
         Return a list of words that may follow a given n-gram.
         The resulting list may contain duplicates, because each
-        n-gram may be followed by different words. For example,
-        suppose an author has the following sentences:
-            'the dog dances quickly'
-            'the dog dances with the cat'
-            'the dog dances with me'
-        If n=3, then the n-gram 'the dog dances' is followed by 'quickly' one time, and 'with' two times.
+        n-gram may be followed by different words.
         If the given state never occurs, return an empty list.
         """
 
-        pass
-    
+        return self.brainGraph.get(ngram, [])
 
     def get_all_ngrams(self):
         """
@@ -155,51 +167,40 @@ class Babbler:
         Probably a one-line method.
         """
 
-        pass
+        return list(self.brainGraph.keys())
 
-    
     def has_successor(self, ngram):
         """
-        Return True if the given ngram has at least one possible successor word, and False if it does not. 
-        This is another way of asking if we have ever seen a given ngram, 
-        because ngrams with no successor words must not have occurred in the training sentences.
-        Probably a one-line method.
+        Return True if the given ngram has at least one possible successor word, and False if it does not.
         """
+        return ngram in self.brainGraph and len(self.brainGraph[ngram]) > 0
 
-        pass
-    
-    
     def get_random_successor(self, ngram):
         """
-        Given an n-gram, randomly pick from the possible words that could follow that n-gram. 
+        Given an n-gram, randomly pick from the possible words that could follow that n-gram.
         The randomness should take into account how likely a word is to follow the given n-gram.
-        For example, if n=3 and we train on these three sentences:
-            'the dog dances quickly'
-            'the dog dances with the cat'
-            'the dog dances with me'
-        and we call get_random_next_word() for the state 'the dog dances',
-        we should get 'quickly' about 1/3 of the time, and 'with' 2/3 of the time.
         """
-
-        pass
-    
+        successors = self.get_successors(ngram)
+        if not successors:
+            return None
+        return random.choice(successors)
 
     def babble(self):
         """
-        Generate a random sentence using the following algorithm:
-        
-        1: Pick a starter ngram. This is the current ngram, and also the current sentence so far.
-            Suppose the starter ngram is 'a b c'
-        2: Choose a successor word based on the current ngram.
-        3: If the successor word is 'EOL', return the current sentence.
-        4: Otherwise, add the word to the end of the sentence
-            Our sentence is now 'a b c d' (the only possibly successor was 'd')
-        5: Also add the word to the end of the current ngram, and remove the first word from the current ngram.
-            Our example state is now: 'b c d' 
-        6: Repeat from step 2.
+        Generate a random sentence using the Markov process.
         """
-
-        pass
+        if not self.starters:
+            return ""
+        current_ngram = random.choice(self.starters)
+        sentence = current_ngram.split()
+        while True:
+            next_word = self.get_random_successor(current_ngram)
+            if next_word == 'EOL' or next_word is None:
+                break
+            sentence.append(next_word)
+            # Update current_ngram to the next state (slide window)
+            current_ngram = ' '.join(sentence[-self.n:])
+        return ' '.join(sentence)
             
 
 # nothing to change here; read, understand, move along
